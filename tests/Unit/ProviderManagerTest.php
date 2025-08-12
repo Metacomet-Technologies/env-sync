@@ -96,7 +96,7 @@ describe('Provider filtering', function () {
 it('returns all registered providers', function () {
     $mockProvider1 = Mockery::mock(SecretProvider::class);
     $mockProvider1->shouldReceive('isAvailable')->andReturn(true);
-    
+
     $mockProvider2 = Mockery::mock(SecretProvider::class);
     $mockProvider2->shouldReceive('isAvailable')->andReturn(true);
 

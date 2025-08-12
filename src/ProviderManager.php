@@ -20,6 +20,7 @@ class ProviderManager
     ];
 
     protected array $providers = [];
+
     protected array $customProviders = [];
 
     /**
@@ -46,6 +47,7 @@ class ProviderManager
         // Check for custom registered providers first (for testing)
         if (isset($this->customProviders[$name])) {
             $this->providers[$name] = $this->customProviders[$name];
+
             return $this->providers[$name];
         }
 
@@ -141,15 +143,15 @@ class ProviderManager
     public function all(): array
     {
         $providers = [];
-        
+
         // Include custom providers
         foreach ($this->customProviders as $name => $provider) {
             $providers[$name] = $provider;
         }
-        
+
         // Include configured providers
         foreach ($this->getAvailableProviders() as $name) {
-            if (!isset($providers[$name])) {
+            if (! isset($providers[$name])) {
                 $providers[$name] = $this->get($name);
             }
         }
@@ -168,6 +170,7 @@ class ProviderManager
                 $authenticated[$name] = $provider;
             }
         }
+
         return $authenticated;
     }
 
@@ -177,37 +180,38 @@ class ProviderManager
     public function getAvailableProviders(): array
     {
         $available = [];
-        
+
         // Check custom providers first
-        if (!empty($this->customProviders)) {
+        if (! empty($this->customProviders)) {
             foreach ($this->customProviders as $name => $provider) {
                 if ($provider->isAvailable()) {
                     $available[] = $name;
                 }
             }
+
             return $available;
         }
-        
+
         // Otherwise return configured providers
         return array_keys(config('env-sync.providers', []));
     }
-    
+
     /**
      * Get available providers with instances - for testing
      */
     public function getAvailableProvidersWithInstances(): array
     {
         $available = [];
-        
+
         foreach ($this->customProviders as $name => $provider) {
             if ($provider->isAvailable()) {
                 $available[$name] = $provider;
             }
         }
-        
+
         $config = config('env-sync.providers', []);
         foreach ($config as $name => $settings) {
-            if (!isset($available[$name])) {
+            if (! isset($available[$name])) {
                 try {
                     $provider = $this->get($name);
                     if ($provider->isAvailable()) {
@@ -218,7 +222,7 @@ class ProviderManager
                 }
             }
         }
-        
+
         return $available;
     }
 

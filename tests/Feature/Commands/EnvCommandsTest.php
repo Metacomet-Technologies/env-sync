@@ -17,6 +17,7 @@ beforeEach(function () {
     $this->app->singleton(ProviderManager::class, function () {
         $manager = new ProviderManager;
         $manager->register('1password', $this->mockProvider);
+
         return $manager;
     });
 });
@@ -55,7 +56,7 @@ describe('env:push command', function () {
             '--force' => true,
         ])
             ->assertSuccessful();
-        
+
         // Verify the mock provider has the item
         expect($this->mockProvider->exists([
             'environment' => 'test',
@@ -73,7 +74,7 @@ describe('env:push command', function () {
 
     it('fails when provider is not available', function () {
         $this->mockProvider->setAvailable(false);
-        
+
         // Create the file so it doesn't fail on that
         File::put(base_path('.env.test'), 'TEST=1');
 
@@ -86,7 +87,7 @@ describe('env:push command', function () {
 
     it('fails when not authenticated', function () {
         $this->mockProvider->setAuthenticated(false);
-        
+
         // Create the file so it doesn't fail on that
         File::put(base_path('.env.test'), 'TEST=1');
 
