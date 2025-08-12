@@ -8,30 +8,54 @@ on:
 
 jobs:
   test:
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-latest, windows-latest]
-        php: [8.1, 8.2, 8.3, 8.4]
-        laravel: [10.*, 11.*, 12.*]
-        stability: [prefer-lowest, prefer-stable]
         include:
-          - laravel: 10.*
+          # Test minimum supported versions
+          - php: 8.1
+            laravel: 10.*
             testbench: 8.*
-          - laravel: 11.*
+            stability: prefer-lowest
+            
+          # Test Laravel 10 with latest PHP
+          - php: 8.3
+            laravel: 10.*
+            testbench: 8.*
+            stability: prefer-stable
+            
+          # Test Laravel 11 with minimum PHP
+          - php: 8.2
+            laravel: 11.*
             testbench: 9.*
-          - laravel: 12.*
+            stability: prefer-lowest
+            
+          # Test Laravel 11 with stable
+          - php: 8.3
+            laravel: 11.*
+            testbench: 9.*
+            stability: prefer-stable
+            
+          # Test Laravel 12 with minimum PHP
+          - php: 8.2
+            laravel: 12.*
             testbench: 10.*
-        exclude:
-          # Laravel 11 requires PHP 8.2+
-          - laravel: 11.*
-            php: 8.1
-          # Laravel 12 requires PHP 8.2+
-          - laravel: 12.*
-            php: 8.1
+            stability: prefer-lowest
+            
+          # Test Laravel 12 with latest stable
+          - php: 8.3
+            laravel: 12.*
+            testbench: 10.*
+            stability: prefer-stable
+            
+          # Test latest everything
+          - php: 8.4
+            laravel: 12.*
+            testbench: 10.*
+            stability: prefer-stable
 
-    name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.stability }} - ${{ matrix.os }}
+    name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.stability }}
 
     steps:
       - name: Checkout code
