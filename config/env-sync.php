@@ -33,8 +33,10 @@ return [
 
         'aws' => [
             'driver' => 'aws',
-            'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
+            'region' => env('ENV_SYNC_AWS_REGION', env('AWS_DEFAULT_REGION', 'us-east-1')),
             'profile' => env('AWS_PROFILE'),
+            'key' => env('AWS_ACCESS_KEY_ID'),
+            'secret' => env('AWS_SECRET_ACCESS_KEY'),
             'prefix' => env('AWS_SECRET_PREFIX', ''),
         ],
 
@@ -74,7 +76,7 @@ return [
     */
     'backup' => [
         'enabled' => true,
-        'max_backups' => 5, // Maximum number of backups to keep
+        'max_backups' => 5,  // Maximum number of backups to keep
         'directory' => null, // null means same directory as .env file
     ],
 

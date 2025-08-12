@@ -1,27 +1,9 @@
 parameters:
 	ignoreErrors:
 		-
-			message: '#^Method Metacomet\\EnvSync\\Providers\\AwsSecretsManagerProvider\:\:generateSecretName\(\) is unused\.$#'
-			identifier: method.unused
+			message: '#^Instantiated class \\Aws\\SecretsManager\\SecretsManagerClient not found\.$#'
+			identifier: class.notFound
 			count: 1
-			path: src/Providers/AwsSecretsManagerProvider.php
-
-		-
-			message: '#^Method Metacomet\\EnvSync\\Providers\\AwsSecretsManagerProvider\:\:getSecretValue\(\) is unused\.$#'
-			identifier: method.unused
-			count: 1
-			path: src/Providers/AwsSecretsManagerProvider.php
-
-		-
-			message: '#^Method Metacomet\\EnvSync\\Providers\\AwsSecretsManagerProvider\:\:secretExists\(\) is unused\.$#'
-			identifier: method.unused
-			count: 1
-			path: src/Providers/AwsSecretsManagerProvider.php
-
-		-
-			message: '#^Unreachable statement \- code above always terminates\.$#'
-			identifier: deadCode.unreachable
-			count: 5
 			path: src/Providers/AwsSecretsManagerProvider.php
 
 		-

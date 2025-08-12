@@ -3,43 +3,64 @@
 namespace Metacomet\EnvSync\Providers;
 
 use Exception;
-use Symfony\Component\Process\Process;
 
-/**
- * AWS Secrets Manager Provider
- *
- * STATUS: Planned - Not yet implemented
- * This provider is on the roadmap for future development.
- *
- * @todo Implement AWS Secrets Manager integration
- */
 class AwsSecretsManagerProvider extends BaseProvider
 {
+    protected ?object $client = null;
+
     public function getName(): string
     {
-        return 'AWS Secrets Manager (Coming Soon)';
+        return 'AWS Secrets Manager';
     }
 
     public function isAvailable(): bool
     {
-        // Not yet implemented
-        return false;
+        // Check if AWS SDK is available
+        if (! class_exists('\Aws\SecretsManager\SecretsManagerClient')) {
+            // Check if AWS CLI is available as fallback
+            $process = $this->runProcess(['which', 'aws']);
+
+            return $process->isSuccessful();
+        }
+
+        return true;
     }
 
     public function isAuthenticated(): bool
     {
-        // Not yet implemented
-        return false;
+        $this->checkAwsSdkInstalled();
+
+        try {
+            $client = $this->getClient($this->config ?? []);
+            // Try to list secrets (with a limit of 1) to verify authentication
+            $client->listSecrets(['MaxResults' => 1]);
+
+            return true;
+        } catch (\Throwable $e) {
+            // Check if it's an AWS exception and an authentication error
+            if (method_exists($e, 'getAwsErrorCode')) {
+                $errorCode = $e->getAwsErrorCode();
+                if (in_array($errorCode, ['UnrecognizedClientException', 'InvalidUserPool.NotFound', 'AccessDeniedException'])) {
+                    return false;
+                }
+
+                // For other AWS errors, we consider authenticated but may have other issues
+                return true;
+            }
+
+            return false;
+        }
     }
 
     public function push(array $config): void
     {
-        throw new Exception('AWS Secrets Manager provider is not yet implemented. This feature is on our roadmap.');
-        // Implementation planned:
+        // Check AWS SDK first
+        $this->checkAwsSdkInstalled();
+
         $environment = $config['environment'] ?? 'local';
-        $region = $config['region'] ?? 'us-east-1';
         $force = $config['force'] ?? false;
         $secretName = $this->generateSecretName($environment, $config['secretName'] ?? null);
+        $description = $config['description'] ?? "Environment variables for {$environment} environment";
 
         $envFile = $this->getEnvFilePath($environment);
 
@@ -48,60 +69,63 @@ class AwsSecretsManagerProvider extends BaseProvider
         }
 
         $envContent = file_get_contents($envFile);
+        $envBase64 = $this->encodeContent($envContent);
+        $client = $this->getClient($config);
 
         // Check if secret exists
-        $exists = $this->secretExists($secretName, $region);
+        $exists = $this->secretExists($client, $secretName);
 
         if ($exists) {
             if (! $force) {
                 // Get current secret value
-                $currentContent = $this->getSecretValue($secretName, $region);
+                $currentContent = $this->getSecretValue($client, $secretName);
                 if ($currentContent === $envContent) {
                     throw new Exception('Files are identical - no push needed. Use --force to push anyway.');
                 }
             }
 
             // Update existing secret
-            $process = new Process([
-                'aws', 'secretsmanager', 'update-secret',
-                '--secret-id', $secretName,
-                '--secret-string', $envContent,
-                '--region', $region,
-            ]);
-            $process->run();
-
-            if (! $process->isSuccessful()) {
-                throw new Exception('Failed to update secret in AWS: '.$process->getErrorOutput());
+            try {
+                $client->updateSecret([
+                    'SecretId' => $secretName,
+                    'SecretString' => $envBase64,
+                    'Description' => $description,
+                ]);
+            } catch (\Throwable $e) {
+                throw new Exception('Failed to update secret in AWS: '.$e->getMessage());
             }
         } else {
             // Create new secret
-            $description = "Environment variables for {$environment} environment";
-            $process = new Process([
-                'aws', 'secretsmanager', 'create-secret',
-                '--name', $secretName,
-                '--description', $description,
-                '--secret-string', $envContent,
-                '--region', $region,
-            ]);
-            $process->run();
-
-            if (! $process->isSuccessful()) {
-                throw new Exception('Failed to create secret in AWS: '.$process->getErrorOutput());
+            try {
+                $client->createSecret([
+                    'Name' => $secretName,
+                    'Description' => $description,
+                    'SecretString' => $envBase64,
+                    'Tags' => [
+                        ['Key' => 'Environment', 'Value' => $environment],
+                        ['Key' => 'Type', 'Value' => 'env'],
+                        ['Key' => 'Format', 'Value' => 'base64'],
+                        ['Key' => 'ManagedBy', 'Value' => 'laravel-env-sync'],
+                    ],
+                ]);
+            } catch (\Throwable $e) {
+                throw new Exception('Failed to create secret in AWS: '.$e->getMessage());
             }
         }
     }
 
     public function pull(array $config): string
     {
-        throw new Exception('AWS Secrets Manager provider is not yet implemented. This feature is on our roadmap.');
-        // Implementation planned:
+        // Check AWS SDK first
+        $this->checkAwsSdkInstalled();
+
         $environment = $config['environment'] ?? 'local';
-        $region = $config['region'] ?? 'us-east-1';
         $force = $config['force'] ?? false;
         $skipWrite = $config['skipWrite'] ?? false;
         $secretName = $this->generateSecretName($environment, $config['secretName'] ?? null);
 
-        $envContent = $this->getSecretValue($secretName, $region);
+        $client = $this->getClient($config);
+        $envContent = $this->getSecretValue($client, $secretName);
 
         if (! $skipWrite) {
             $envFile = $this->getEnvFilePath($environment);
@@ -126,53 +150,64 @@ class AwsSecretsManagerProvider extends BaseProvider
 
     public function exists(array $config): bool
     {
-        // Not yet implemented
-        return false;
+        // Check AWS SDK first
+        $this->checkAwsSdkInstalled();
 
-        // Implementation planned:
         $environment = $config['environment'] ?? 'local';
-        $region = $config['region'] ?? 'us-east-1';
         $secretName = $this->generateSecretName($environment, $config['secretName'] ?? null);
 
-        return $this->secretExists($secretName, $region);
+        $client = $this->getClient($config);
+
+        return $this->secretExists($client, $secretName);
     }
 
     public function list(array $config): array
     {
-        throw new Exception('AWS Secrets Manager provider is not yet implemented. This feature is on our roadmap.');
-        // Implementation planned:
-        $region = $config['region'] ?? 'us-east-1';
+        // Check AWS SDK first
+        $this->checkAwsSdkInstalled();
+
         $gitInfo = $this->getGitInfo();
-        $prefix = $gitInfo['repo'] ?? '';
+        $prefix = $config['prefix'] ?? '';
 
-        $process = $this->runProcess([
-            'aws', 'secretsmanager', 'list-secrets',
-            '--region', $region,
-            '--output', 'json',
-        ]);
-
-        if (! $process->isSuccessful()) {
-            throw new Exception('Failed to list secrets: '.$process->getErrorOutput());
+        // Use git info for filtering if no prefix specified
+        if (empty($prefix) && isset($gitInfo['repo'])) {
+            $prefix = $gitInfo['repo'];
         }
 
-        $result = json_decode($process->getOutput(), true);
-        $secrets = $result['SecretList'] ?? [];
+        $client = $this->getClient($config);
         $envItems = [];
+        $nextToken = null;
 
-        foreach ($secrets as $secret) {
-            // Filter secrets related to this project
-            if (str_contains($secret['Name'], $prefix)) {
-                // Extract environment from name
-                if (preg_match('/\/([^\/]+)$/', $secret['Name'], $matches)) {
-                    $envItems[] = [
-                        'id' => $secret['ARN'],
-                        'title' => $secret['Name'],
-                        'environment' => $matches[1],
-                        'updatedAt' => $secret['LastChangedDate'] ?? null,
-                        'region' => $region,
-                    ];
+        try {
+            do {
+                $params = ['MaxResults' => 100];
+                if ($nextToken) {
+                    $params['NextToken'] = $nextToken;
                 }
-            }
+
+                $result = $client->listSecrets($params);
+                $secrets = $result['SecretList'] ?? [];
+
+                foreach ($secrets as $secret) {
+                    // Filter secrets related to this project
+                    if (empty($prefix) || str_contains($secret['Name'], $prefix)) {
+                        // Extract environment from name pattern
+                        if (preg_match('/\/([^\/]+)$/', $secret['Name'], $matches)) {
+                            $envItems[] = [
+                                'id' => $secret['ARN'],
+                                'title' => $secret['Name'],
+                                'environment' => $matches[1],
+                                'updatedAt' => $secret['LastChangedDate'] ?? null,
+                                'region' => $config['region'] ?? 'us-east-1',
+                            ];
+                        }
+                    }
+                }
+
+                $nextToken = $result['NextToken'] ?? null;
+            } while ($nextToken);
+        } catch (\Throwable $e) {
+            throw new Exception('Failed to list secrets: '.$e->getMessage());
         }
 
         return $envItems;
@@ -180,21 +215,29 @@ class AwsSecretsManagerProvider extends BaseProvider
 
     public function delete(array $config): void
     {
-        throw new Exception('AWS Secrets Manager provider is not yet implemented. This feature is on our roadmap.');
-        // Implementation planned:
+        // Check AWS SDK first
+        $this->checkAwsSdkInstalled();
+
         $environment = $config['environment'] ?? 'local';
-        $region = $config['region'] ?? 'us-east-1';
         $secretName = $this->generateSecretName($environment, $config['secretName'] ?? null);
+        $forceDelete = $config['forceDelete'] ?? false;
 
-        $process = $this->runProcess([
-            'aws', 'secretsmanager', 'delete-secret',
-            '--secret-id', $secretName,
-            '--force-delete-without-recovery',
-            '--region', $region,
-        ]);
+        $client = $this->getClient($config);
 
-        if (! $process->isSuccessful()) {
-            throw new Exception('Failed to delete secret: '.$process->getErrorOutput());
+        try {
+            $params = ['SecretId' => $secretName];
+
+            if ($forceDelete) {
+                // Delete immediately without recovery window
+                $params['ForceDeleteWithoutRecovery'] = true;
+            } else {
+                // Schedule deletion with 30-day recovery window
+                $params['RecoveryWindowInDays'] = 30;
+            }
+
+            $client->deleteSecret($params);
+        } catch (\Throwable $e) {
+            throw new Exception('Failed to delete secret: '.$e->getMessage());
         }
     }
 
@@ -216,51 +259,109 @@ Other: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.
 EOT;
     }
 
+    protected function checkAwsSdkInstalled(): void
+    {
+        if (! class_exists('\Aws\SecretsManager\SecretsManagerClient')) {
+            throw new Exception(
+                "AWS SDK for PHP is not installed. Please install it to use the AWS Secrets Manager provider:\n".
+                "composer require aws/aws-sdk-php\n\n".
+                'For more information, see: https://docs.aws.amazon.com/sdk-for-php/v3/developer-guide/getting-started_installation.html'
+            );
+        }
+    }
+
+    protected function getClient(array $config): object
+    {
+        $this->checkAwsSdkInstalled();
+
+        if ($this->client === null) {
+            $awsConfig = [
+                'version' => 'latest',
+                'region' => $config['region'] ?? 'us-east-1',
+            ];
+
+            // Use profile if specified
+            if (! empty($config['profile'])) {
+                $awsConfig['profile'] = $config['profile'];
+            }
+            // Or use explicit credentials if provided
+            elseif (! empty($config['key']) && ! empty($config['secret'])) {
+                $awsConfig['credentials'] = [
+                    'key' => $config['key'],
+                    'secret' => $config['secret'],
+                ];
+
+                if (! empty($config['token'])) {
+                    $awsConfig['credentials']['token'] = $config['token'];
+                }
+            }
+            // Otherwise rely on default credential chain (IAM role, env vars, etc.)
+
+            $className = '\Aws\SecretsManager\SecretsManagerClient';
+            $this->client = new $className($awsConfig);
+        }
+
+        return $this->client;
+    }
+
     private function generateSecretName(string $environment, ?string $customName = null): string
     {
         if ($customName) {
             return $customName;
         }
 
+        $prefix = $this->config['prefix'] ?? '';
         $gitInfo = $this->getGitInfo();
 
+        // Build the secret name
+        $parts = [];
+
+        if (! empty($prefix)) {
+            $parts[] = rtrim($prefix, '/');
+        }
+
         if (isset($gitInfo['org']) && isset($gitInfo['repo'])) {
-            return "{$gitInfo['org']}/{$gitInfo['repo']}/{$environment}";
+            $parts[] = $gitInfo['org'];
+            $parts[] = $gitInfo['repo'];
+        } elseif (isset($gitInfo['repo'])) {
+            $parts[] = $gitInfo['repo'];
+        } else {
+            $parts[] = 'env';
         }
 
-        if (isset($gitInfo['repo'])) {
-            return "{$gitInfo['repo']}/{$environment}";
-        }
+        $parts[] = $environment;
 
-        return "env/{$environment}";
+        return implode('/', $parts);
     }
 
-    private function secretExists(string $secretName, string $region): bool
+    private function secretExists(object $client, string $secretName): bool
     {
-        $process = $this->runProcess([
-            'aws', 'secretsmanager', 'describe-secret',
-            '--secret-id', $secretName,
-            '--region', $region,
-        ]);
+        try {
+            $client->describeSecret(['SecretId' => $secretName]);
 
-        return $process->isSuccessful();
+            return true;
+        } catch (\Throwable $e) {
+            if (method_exists($e, 'getAwsErrorCode') && $e->getAwsErrorCode() === 'ResourceNotFoundException') {
+                return false;
+            }
+            // Re-throw other exceptions
+            throw $e;
+        }
     }
 
-    private function getSecretValue(string $secretName, string $region): string
+    private function getSecretValue(object $client, string $secretName): string
     {
-        $process = $this->runProcess([
-            'aws', 'secretsmanager', 'get-secret-value',
-            '--secret-id', $secretName,
-            '--region', $region,
-            '--output', 'json',
-        ]);
+        try {
+            $result = $client->getSecretValue(['SecretId' => $secretName]);
+            $secretString = $result['SecretString'] ?? '';
 
-        if (! $process->isSuccessful()) {
-            throw new Exception('Unable to retrieve secret from AWS: '.$process->getErrorOutput());
+            // Decode if it's base64 encoded
+            return $this->decodeContent($secretString);
+        } catch (\Throwable $e) {
+            if (method_exists($e, 'getAwsErrorCode') && $e->getAwsErrorCode() === 'ResourceNotFoundException') {
+                throw new Exception("Secret not found: {$secretName}");
+            }
+            throw new Exception('Unable to retrieve secret from AWS: '.$e->getMessage());
         }
-
-        $result = json_decode($process->getOutput(), true);
-
-        return $result['SecretString'] ?? '';
     }
 }
