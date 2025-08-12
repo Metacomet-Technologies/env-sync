@@ -2,9 +2,9 @@
 
 namespace Metacomet\EnvSync;
 
+use Metacomet\EnvSync\Commands\EnvSyncCommand;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
-use Metacomet\EnvSync\Commands\EnvSyncCommand;
 
 class EnvSyncServiceProvider extends PackageServiceProvider
 {
