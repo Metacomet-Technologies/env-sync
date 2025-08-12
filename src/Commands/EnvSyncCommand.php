@@ -1,12 +1,12 @@
 <?php
 
-namespace VendorName\Skeleton\Commands;
+namespace Metacomet\EnvSync\Commands;
 
 use Illuminate\Console\Command;
 
-class SkeletonCommand extends Command
+class EnvSyncCommand extends Command
 {
-    public $signature = 'skeleton';
+    public $signature = 'env-sync';
 
     public $description = 'My command';
 
