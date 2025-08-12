@@ -43,6 +43,9 @@ Full integration with complete support for vaults, automatic title generation, a
 # macOS
 brew install --cask 1password-cli
 
+# Windows and Linux
+# https://developer.1password.com/docs/cli/get-started/
+
 # Sign in
 eval $(op signin)
 ```
