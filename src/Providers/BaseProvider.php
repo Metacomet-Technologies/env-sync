@@ -11,6 +11,7 @@ abstract class BaseProvider implements SecretProvider
     {
         try {
             $process = new Process(['git', 'config', '--get', 'remote.origin.url']);
+            $process->setWorkingDirectory(base_path());
             $process->run();
 
             if (! $process->isSuccessful()) {
