@@ -19,9 +19,9 @@ class ProviderManager
 
     protected function registerDefaultProviders(): void
     {
-        $this->register('1password', new OnePasswordProvider());
-        $this->register('aws', new AwsSecretsManagerProvider());
-        $this->register('bitwarden', new BitwardenProvider());
+        $this->register('1password', new OnePasswordProvider);
+        $this->register('aws', new AwsSecretsManagerProvider);
+        $this->register('bitwarden', new BitwardenProvider);
     }
 
     public function register(string $key, SecretProvider $provider): void
@@ -31,8 +31,8 @@ class ProviderManager
 
     public function get(string $key): SecretProvider
     {
-        if (!isset($this->providers[$key])) {
-            throw new Exception("Provider '{$key}' not found. Available providers: " . implode(', ', array_keys($this->providers)));
+        if (! isset($this->providers[$key])) {
+            throw new Exception("Provider '{$key}' not found. Available providers: ".implode(', ', array_keys($this->providers)));
         }
 
         return $this->providers[$key];
@@ -46,7 +46,7 @@ class ProviderManager
     public function getAvailableProviders(): array
     {
         $available = [];
-        
+
         foreach ($this->providers as $key => $provider) {
             if ($provider->isAvailable()) {
                 $available[$key] = $provider;
@@ -59,7 +59,7 @@ class ProviderManager
     public function getAuthenticatedProviders(): array
     {
         $authenticated = [];
-        
+
         foreach ($this->getAvailableProviders() as $key => $provider) {
             if ($provider->isAuthenticated()) {
                 $authenticated[$key] = $provider;

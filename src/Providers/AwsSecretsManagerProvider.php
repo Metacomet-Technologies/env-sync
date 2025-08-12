@@ -7,10 +7,10 @@ use Symfony\Component\Process\Process;
 
 /**
  * AWS Secrets Manager Provider
- * 
+ *
  * STATUS: Planned - Not yet implemented
  * This provider is on the roadmap for future development.
- * 
+ *
  * @todo Implement AWS Secrets Manager integration
  */
 class AwsSecretsManagerProvider extends BaseProvider
@@ -35,7 +35,6 @@ class AwsSecretsManagerProvider extends BaseProvider
     public function push(array $config): void
     {
         throw new Exception('AWS Secrets Manager provider is not yet implemented. This feature is on our roadmap.');
-        
         // Implementation planned:
         $environment = $config['environment'] ?? 'local';
         $region = $config['region'] ?? 'us-east-1';
@@ -44,7 +43,7 @@ class AwsSecretsManagerProvider extends BaseProvider
 
         $envFile = $this->getEnvFilePath($environment);
 
-        if (!file_exists($envFile)) {
+        if (! file_exists($envFile)) {
             throw new Exception("Environment file not found: {$envFile}");
         }
 
@@ -54,7 +53,7 @@ class AwsSecretsManagerProvider extends BaseProvider
         $exists = $this->secretExists($secretName, $region);
 
         if ($exists) {
-            if (!$force) {
+            if (! $force) {
                 // Get current secret value
                 $currentContent = $this->getSecretValue($secretName, $region);
                 if ($currentContent === $envContent) {
@@ -71,8 +70,8 @@ class AwsSecretsManagerProvider extends BaseProvider
             ]);
             $process->run();
 
-            if (!$process->isSuccessful()) {
-                throw new Exception('Failed to update secret in AWS: ' . $process->getErrorOutput());
+            if (! $process->isSuccessful()) {
+                throw new Exception('Failed to update secret in AWS: '.$process->getErrorOutput());
             }
         } else {
             // Create new secret
@@ -86,8 +85,8 @@ class AwsSecretsManagerProvider extends BaseProvider
             ]);
             $process->run();
 
-            if (!$process->isSuccessful()) {
-                throw new Exception('Failed to create secret in AWS: ' . $process->getErrorOutput());
+            if (! $process->isSuccessful()) {
+                throw new Exception('Failed to create secret in AWS: '.$process->getErrorOutput());
             }
         }
     }
@@ -95,7 +94,6 @@ class AwsSecretsManagerProvider extends BaseProvider
     public function pull(array $config): string
     {
         throw new Exception('AWS Secrets Manager provider is not yet implemented. This feature is on our roadmap.');
-        
         // Implementation planned:
         $environment = $config['environment'] ?? 'local';
         $region = $config['region'] ?? 'us-east-1';
@@ -105,13 +103,13 @@ class AwsSecretsManagerProvider extends BaseProvider
 
         $envContent = $this->getSecretValue($secretName, $region);
 
-        if (!$skipWrite) {
+        if (! $skipWrite) {
             $envFile = $this->getEnvFilePath($environment);
 
             if (file_exists($envFile)) {
                 $localContent = file_get_contents($envFile);
 
-                if ($localContent === $envContent && !$force) {
+                if ($localContent === $envContent && ! $force) {
                     throw new Exception('Files are identical - no pull needed. Use --force to pull anyway.');
                 }
 
@@ -130,7 +128,7 @@ class AwsSecretsManagerProvider extends BaseProvider
     {
         // Not yet implemented
         return false;
-        
+
         // Implementation planned:
         $environment = $config['environment'] ?? 'local';
         $region = $config['region'] ?? 'us-east-1';
@@ -142,7 +140,6 @@ class AwsSecretsManagerProvider extends BaseProvider
     public function list(array $config): array
     {
         throw new Exception('AWS Secrets Manager provider is not yet implemented. This feature is on our roadmap.');
-        
         // Implementation planned:
         $region = $config['region'] ?? 'us-east-1';
         $gitInfo = $this->getGitInfo();
@@ -154,8 +151,8 @@ class AwsSecretsManagerProvider extends BaseProvider
             '--output', 'json',
         ]);
 
-        if (!$process->isSuccessful()) {
-            throw new Exception('Failed to list secrets: ' . $process->getErrorOutput());
+        if (! $process->isSuccessful()) {
+            throw new Exception('Failed to list secrets: '.$process->getErrorOutput());
         }
 
         $result = json_decode($process->getOutput(), true);
@@ -184,7 +181,6 @@ class AwsSecretsManagerProvider extends BaseProvider
     public function delete(array $config): void
     {
         throw new Exception('AWS Secrets Manager provider is not yet implemented. This feature is on our roadmap.');
-        
         // Implementation planned:
         $environment = $config['environment'] ?? 'local';
         $region = $config['region'] ?? 'us-east-1';
@@ -197,14 +193,14 @@ class AwsSecretsManagerProvider extends BaseProvider
             '--region', $region,
         ]);
 
-        if (!$process->isSuccessful()) {
-            throw new Exception('Failed to delete secret: ' . $process->getErrorOutput());
+        if (! $process->isSuccessful()) {
+            throw new Exception('Failed to delete secret: '.$process->getErrorOutput());
         }
     }
 
     public function getAuthInstructions(): string
     {
-        return <<<EOT
+        return <<<'EOT'
 Configure AWS credentials using one of:
 - aws configure
 - Export AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
@@ -214,7 +210,7 @@ EOT;
 
     public function getInstallInstructions(): string
     {
-        return <<<EOT
+        return <<<'EOT'
 macOS: brew install awscli
 Other: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
 EOT;
@@ -259,11 +255,12 @@ EOT;
             '--output', 'json',
         ]);
 
-        if (!$process->isSuccessful()) {
-            throw new Exception('Unable to retrieve secret from AWS: ' . $process->getErrorOutput());
+        if (! $process->isSuccessful()) {
+            throw new Exception('Unable to retrieve secret from AWS: '.$process->getErrorOutput());
         }
 
         $result = json_decode($process->getOutput(), true);
+
         return $result['SecretString'] ?? '';
     }
 }

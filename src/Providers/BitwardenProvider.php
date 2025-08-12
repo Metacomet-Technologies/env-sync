@@ -7,10 +7,10 @@ use Symfony\Component\Process\Process;
 
 /**
  * Bitwarden Provider
- * 
+ *
  * STATUS: Planned - Not yet implemented
  * This provider is on the roadmap for future development.
- * 
+ *
  * @todo Implement Bitwarden integration
  */
 class BitwardenProvider extends BaseProvider
@@ -35,7 +35,6 @@ class BitwardenProvider extends BaseProvider
     public function push(array $config): void
     {
         throw new Exception('Bitwarden provider is not yet implemented. This feature is on our roadmap.');
-        
         // Implementation planned:
         $environment = $config['environment'] ?? 'local';
         $force = $config['force'] ?? false;
@@ -44,7 +43,7 @@ class BitwardenProvider extends BaseProvider
 
         $envFile = $this->getEnvFilePath($environment);
 
-        if (!file_exists($envFile)) {
+        if (! file_exists($envFile)) {
             throw new Exception("Environment file not found: {$envFile}");
         }
 
@@ -55,7 +54,7 @@ class BitwardenProvider extends BaseProvider
         $itemId = $this->getItemId($title);
 
         if ($itemId) {
-            if (!$force) {
+            if (! $force) {
                 $existingContent = $this->getItemContent($itemId);
                 if ($existingContent === $envContent) {
                     throw new Exception('Files are identical - no push needed. Use --force to push anyway.');
@@ -70,8 +69,8 @@ class BitwardenProvider extends BaseProvider
             $process->setInput(json_encode($item));
             $process->run();
 
-            if (!$process->isSuccessful()) {
-                throw new Exception('Failed to update item in Bitwarden: ' . $process->getErrorOutput());
+            if (! $process->isSuccessful()) {
+                throw new Exception('Failed to update item in Bitwarden: '.$process->getErrorOutput());
             }
 
             // Sync to push changes
@@ -95,8 +94,8 @@ class BitwardenProvider extends BaseProvider
             $process->setInput(json_encode($item));
             $process->run();
 
-            if (!$process->isSuccessful()) {
-                throw new Exception('Failed to create item in Bitwarden: ' . $process->getErrorOutput());
+            if (! $process->isSuccessful()) {
+                throw new Exception('Failed to create item in Bitwarden: '.$process->getErrorOutput());
             }
 
             // Sync to push changes
@@ -107,7 +106,6 @@ class BitwardenProvider extends BaseProvider
     public function pull(array $config): string
     {
         throw new Exception('Bitwarden provider is not yet implemented. This feature is on our roadmap.');
-        
         // Implementation planned:
         $environment = $config['environment'] ?? 'local';
         $force = $config['force'] ?? false;
@@ -116,19 +114,19 @@ class BitwardenProvider extends BaseProvider
 
         $itemId = $this->getItemId($title);
 
-        if (!$itemId) {
+        if (! $itemId) {
             throw new Exception("Item '{$title}' not found in Bitwarden");
         }
 
         $envContent = $this->getItemContent($itemId);
 
-        if (!$skipWrite) {
+        if (! $skipWrite) {
             $envFile = $this->getEnvFilePath($environment);
 
             if (file_exists($envFile)) {
                 $localContent = file_get_contents($envFile);
 
-                if ($localContent === $envContent && !$force) {
+                if ($localContent === $envContent && ! $force) {
                     throw new Exception('Files are identical - no pull needed. Use --force to pull anyway.');
                 }
 
@@ -147,7 +145,7 @@ class BitwardenProvider extends BaseProvider
     {
         // Not yet implemented
         return false;
-        
+
         // Implementation planned:
         $environment = $config['environment'] ?? 'local';
         $title = $this->generateTitle($environment, $config['title'] ?? null);
@@ -158,14 +156,13 @@ class BitwardenProvider extends BaseProvider
     public function list(array $config): array
     {
         throw new Exception('Bitwarden provider is not yet implemented. This feature is on our roadmap.');
-        
         // Implementation planned:
         $gitInfo = $this->getGitInfo();
 
         $process = $this->runProcess(['bw', 'list', 'items', '--search', $gitInfo['repo'] ?? '']);
 
-        if (!$process->isSuccessful()) {
-            throw new Exception('Failed to list items from Bitwarden: ' . $process->getErrorOutput());
+        if (! $process->isSuccessful()) {
+            throw new Exception('Failed to list items from Bitwarden: '.$process->getErrorOutput());
         }
 
         $items = json_decode($process->getOutput(), true) ?? [];
@@ -192,21 +189,20 @@ class BitwardenProvider extends BaseProvider
     public function delete(array $config): void
     {
         throw new Exception('Bitwarden provider is not yet implemented. This feature is on our roadmap.');
-        
         // Implementation planned:
         $environment = $config['environment'] ?? 'local';
         $title = $this->generateTitle($environment, $config['title'] ?? null);
 
         $itemId = $this->getItemId($title);
 
-        if (!$itemId) {
+        if (! $itemId) {
             throw new Exception("Item '{$title}' not found in Bitwarden");
         }
 
         $process = $this->runProcess(['bw', 'delete', 'item', $itemId]);
 
-        if (!$process->isSuccessful()) {
-            throw new Exception('Failed to delete item from Bitwarden: ' . $process->getErrorOutput());
+        if (! $process->isSuccessful()) {
+            throw new Exception('Failed to delete item from Bitwarden: '.$process->getErrorOutput());
         }
 
         // Sync to push changes
@@ -215,7 +211,7 @@ class BitwardenProvider extends BaseProvider
 
     public function getAuthInstructions(): string
     {
-        return <<<EOT
+        return <<<'EOT'
 1. Login: bw login
 2. Unlock vault: bw unlock
 3. Set session key: export BW_SESSION="<session-key>"
@@ -224,7 +220,7 @@ EOT;
 
     public function getInstallInstructions(): string
     {
-        return <<<EOT
+        return <<<'EOT'
 macOS: brew install bitwarden-cli
 NPM: npm install -g @bitwarden/cli
 Other: https://bitwarden.com/help/cli/
@@ -235,7 +231,7 @@ EOT;
     {
         $process = $this->runProcess(['bw', 'list', 'items', '--search', $title]);
 
-        if (!$process->isSuccessful()) {
+        if (! $process->isSuccessful()) {
             return null;
         }
 
@@ -254,7 +250,7 @@ EOT;
     {
         $process = $this->runProcess(['bw', 'get', 'item', $itemId]);
 
-        if (!$process->isSuccessful()) {
+        if (! $process->isSuccessful()) {
             throw new Exception('Unable to retrieve item from Bitwarden');
         }
 
@@ -264,8 +260,8 @@ EOT;
     private function getItemContent(string $itemId): string
     {
         $item = $this->getItem($itemId);
-        
-        if (!isset($item['notes'])) {
+
+        if (! isset($item['notes'])) {
             throw new Exception('Item does not contain notes');
         }
 
@@ -276,8 +272,8 @@ EOT;
     {
         $process = $this->runProcess(['bw', 'sync']);
 
-        if (!$process->isSuccessful()) {
-            throw new Exception('Failed to sync with Bitwarden: ' . $process->getErrorOutput());
+        if (! $process->isSuccessful()) {
+            throw new Exception('Failed to sync with Bitwarden: '.$process->getErrorOutput());
         }
     }
 }

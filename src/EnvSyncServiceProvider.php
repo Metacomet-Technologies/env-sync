@@ -25,7 +25,7 @@ class EnvSyncServiceProvider extends PackageServiceProvider
     public function packageRegistered(): void
     {
         $this->app->singleton(ProviderManager::class, function () {
-            return new ProviderManager();
+            return new ProviderManager;
         });
     }
 }

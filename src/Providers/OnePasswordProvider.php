@@ -15,12 +15,14 @@ class OnePasswordProvider extends BaseProvider
     public function isAvailable(): bool
     {
         $process = $this->runProcess(['which', 'op']);
+
         return $process->isSuccessful();
     }
 
     public function isAuthenticated(): bool
     {
         $process = $this->runProcess(['op', 'account', 'list']);
+
         return $process->isSuccessful();
     }
 
@@ -33,7 +35,7 @@ class OnePasswordProvider extends BaseProvider
 
         $envFile = $this->getEnvFilePath($environment);
 
-        if (!file_exists($envFile)) {
+        if (! file_exists($envFile)) {
             throw new Exception("Environment file not found: {$envFile}");
         }
 
@@ -45,7 +47,7 @@ class OnePasswordProvider extends BaseProvider
 
         if ($itemId) {
             // Check if content is identical
-            if (!$force) {
+            if (! $force) {
                 $existingContent = $this->getItemContent($itemId);
                 if ($existingContent === $envContent) {
                     throw new Exception('Files are identical - no push needed. Use --force to push anyway.');
@@ -61,8 +63,8 @@ class OnePasswordProvider extends BaseProvider
             $process->setInput($envBase64);
             $process->run();
 
-            if (!$process->isSuccessful()) {
-                throw new Exception('Failed to update item in 1Password: ' . $process->getErrorOutput());
+            if (! $process->isSuccessful()) {
+                throw new Exception('Failed to update item in 1Password: '.$process->getErrorOutput());
             }
         } else {
             // Create new item
@@ -86,8 +88,8 @@ class OnePasswordProvider extends BaseProvider
             $process->setInput($itemJson);
             $process->run();
 
-            if (!$process->isSuccessful()) {
-                throw new Exception('Failed to create item in 1Password: ' . $process->getErrorOutput());
+            if (! $process->isSuccessful()) {
+                throw new Exception('Failed to create item in 1Password: '.$process->getErrorOutput());
             }
         }
     }
@@ -102,19 +104,19 @@ class OnePasswordProvider extends BaseProvider
 
         $itemId = $this->getItemId($vault, $title);
 
-        if (!$itemId) {
+        if (! $itemId) {
             throw new Exception("Item '{$title}' not found in vault '{$vault}'");
         }
 
         $envContent = $this->getItemContent($itemId);
 
-        if (!$skipWrite) {
+        if (! $skipWrite) {
             $envFile = $this->getEnvFilePath($environment);
 
             if (file_exists($envFile)) {
                 $localContent = file_get_contents($envFile);
 
-                if ($localContent === $envContent && !$force) {
+                if ($localContent === $envContent && ! $force) {
                     throw new Exception('Files are identical - no pull needed. Use --force to pull anyway.');
                 }
 
@@ -145,8 +147,8 @@ class OnePasswordProvider extends BaseProvider
 
         $process = $this->runProcess(['op', 'item', 'list', '--vault', $vault, '--format', 'json']);
 
-        if (!$process->isSuccessful()) {
-            throw new Exception('Failed to list items from vault: ' . $vault);
+        if (! $process->isSuccessful()) {
+            throw new Exception('Failed to list items from vault: '.$vault);
         }
 
         $items = json_decode($process->getOutput(), true) ?? [];
@@ -179,14 +181,14 @@ class OnePasswordProvider extends BaseProvider
 
         $itemId = $this->getItemId($vault, $title);
 
-        if (!$itemId) {
+        if (! $itemId) {
             throw new Exception("Item '{$title}' not found in vault '{$vault}'");
         }
 
         $process = $this->runProcess(['op', 'item', 'delete', $itemId, '--vault', $vault]);
 
-        if (!$process->isSuccessful()) {
-            throw new Exception('Failed to delete item from 1Password: ' . $process->getErrorOutput());
+        if (! $process->isSuccessful()) {
+            throw new Exception('Failed to delete item from 1Password: '.$process->getErrorOutput());
         }
     }
 
@@ -197,7 +199,7 @@ class OnePasswordProvider extends BaseProvider
 
     public function getInstallInstructions(): string
     {
-        return <<<EOT
+        return <<<'EOT'
 macOS: brew install --cask 1password-cli
 Other: https://developer.1password.com/docs/cli/get-started/
 EOT;
@@ -207,7 +209,7 @@ EOT;
     {
         $process = $this->runProcess(['op', 'item', 'list', '--vault', $vault, '--format', 'json']);
 
-        if (!$process->isSuccessful()) {
+        if (! $process->isSuccessful()) {
             return null;
         }
 
@@ -226,7 +228,7 @@ EOT;
     {
         $process = $this->runProcess(['op', 'item', 'get', $itemId, '--fields', 'notesPlain']);
 
-        if (!$process->isSuccessful()) {
+        if (! $process->isSuccessful()) {
             throw new Exception('Unable to retrieve content from 1Password');
         }
 

@@ -34,16 +34,18 @@ class EnvSyncCommand extends Command
             $provider = $this->providerManager->get($providerKey);
 
             // Check if provider is available
-            if (!$provider->isAvailable()) {
+            if (! $provider->isAvailable()) {
                 $this->error("{$provider->getName()} CLI not installed");
                 $this->line($provider->getInstallInstructions());
+
                 return Command::FAILURE;
             }
 
             // Check if authenticated
-            if (!$provider->isAuthenticated()) {
+            if (! $provider->isAuthenticated()) {
                 $this->error("Not authenticated with {$provider->getName()}");
                 $this->line($provider->getAuthInstructions());
+
                 return Command::FAILURE;
             }
 
@@ -129,7 +131,7 @@ class EnvSyncCommand extends Command
                 switch ($choice) {
                     case '1':
                         $this->newLine();
-                        if (!$localExists) {
+                        if (! $localExists) {
                             $this->error('Error: Local .env file not found');
                             break;
                         }
@@ -155,11 +157,11 @@ class EnvSyncCommand extends Command
 
                     case '3':
                         $this->newLine();
-                        if (!$localExists) {
+                        if (! $localExists) {
                             $this->error('Error: Local .env file not found');
                             break;
                         }
-                        if (!$remoteExists) {
+                        if (! $remoteExists) {
                             $this->error("Error: {$provider->getName()} item not found");
                             break;
                         }
@@ -178,15 +180,16 @@ class EnvSyncCommand extends Command
 
                     case '4':
                         $this->newLine();
+
                         // Status refresh happens automatically in the loop
                         continue 2;
 
                     case '5':
                         $this->newLine();
                         $this->info("Listing all environments in {$provider->getName()}...");
-                        
+
                         $items = $provider->list($config);
-                        
+
                         if (empty($items)) {
                             $this->warn('No environments found');
                         } else {
@@ -198,13 +201,14 @@ class EnvSyncCommand extends Command
                                     $item['updatedAt'] ?? 'Unknown',
                                 ];
                             }
-                            
+
                             $this->table(['Environment', 'Title', 'Last Updated'], $tableData);
                         }
                         break;
 
                     case '6':
                         $this->info('Goodbye!');
+
                         return Command::SUCCESS;
 
                     default:
@@ -213,7 +217,7 @@ class EnvSyncCommand extends Command
                 }
 
                 $this->newLine();
-                if (!$this->confirm('Continue with another action?', true)) {
+                if (! $this->confirm('Continue with another action?', true)) {
                     break;
                 }
                 $this->newLine();
@@ -222,6 +226,7 @@ class EnvSyncCommand extends Command
             return Command::SUCCESS;
         } catch (\Exception $e) {
             $this->error($e->getMessage());
+
             return Command::FAILURE;
         }
     }

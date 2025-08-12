@@ -13,7 +13,7 @@ abstract class BaseProvider implements SecretProvider
             $process = new Process(['git', 'config', '--get', 'remote.origin.url']);
             $process->run();
 
-            if (!$process->isSuccessful()) {
+            if (! $process->isSuccessful()) {
                 return ['repo' => basename(getcwd())];
             }
 
@@ -36,6 +36,7 @@ abstract class BaseProvider implements SecretProvider
 
             // Fallback to just the repo name
             $repo = basename($remoteUrl, '.git');
+
             return ['repo' => $repo];
         } catch (\Exception $e) {
             // Fallback to directory name if git is not available
@@ -73,8 +74,9 @@ abstract class BaseProvider implements SecretProvider
 
     protected function createBackup(string $filePath): string
     {
-        $backupPath = $filePath . '.backup.' . date('Ymd_His');
+        $backupPath = $filePath.'.backup.'.date('Ymd_His');
         copy($filePath, $backupPath);
+
         return $backupPath;
     }
 
@@ -87,9 +89,10 @@ abstract class BaseProvider implements SecretProvider
     {
         // Check if content is base64 encoded and decode if necessary
         $decoded = base64_decode($content, true);
-        if ($decoded !== false && !preg_match('/^[A-Z_]+=/', $content)) {
+        if ($decoded !== false && ! preg_match('/^[A-Z_]+=/', $content)) {
             return $decoded;
         }
+
         return $content;
     }
 
@@ -98,6 +101,7 @@ abstract class BaseProvider implements SecretProvider
         $process = new Process($command);
         $process->setTimeout(60);
         $process->run();
+
         return $process;
     }
 

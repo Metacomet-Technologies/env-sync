@@ -36,16 +36,18 @@ class EnvPullCommand extends Command
             $provider = $this->providerManager->get($providerKey);
 
             // Check if provider is available
-            if (!$provider->isAvailable()) {
+            if (! $provider->isAvailable()) {
                 $this->error("{$provider->getName()} CLI not installed");
                 $this->line($provider->getInstallInstructions());
+
                 return Command::FAILURE;
             }
 
             // Check if authenticated
-            if (!$provider->isAuthenticated()) {
+            if (! $provider->isAuthenticated()) {
                 $this->error("Not authenticated with {$provider->getName()}");
                 $this->line($provider->getAuthInstructions());
+
                 return Command::FAILURE;
             }
 
@@ -94,6 +96,7 @@ class EnvPullCommand extends Command
             return Command::SUCCESS;
         } catch (\Exception $e) {
             $this->error($e->getMessage());
+
             return Command::FAILURE;
         }
     }
@@ -114,12 +117,12 @@ class EnvPullCommand extends Command
         $fileContent = file_get_contents($envFile);
 
         foreach ($criticalVars as $var) {
-            if (!preg_match("/^{$var}=/m", $fileContent)) {
+            if (! preg_match("/^{$var}=/m", $fileContent)) {
                 $missingVars[] = $var;
             }
         }
 
-        if (!empty($missingVars)) {
+        if (! empty($missingVars)) {
             $this->warn('The following critical variables might be missing:');
             foreach ($missingVars as $var) {
                 $this->line("  - {$var}");
