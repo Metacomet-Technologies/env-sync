@@ -27,7 +27,7 @@ it('gets the correct provider', function () {
 
 it('throws exception for unknown provider', function () {
     expect(fn () => $this->manager->get('unknown'))
-        ->toThrow(Exception::class, "Provider 'unknown' not found");
+        ->toThrow(Exception::class, "Provider 'unknown' is not configured.");
 });
 
 it('registers new provider successfully', function () {
@@ -62,8 +62,8 @@ describe('Provider filtering', function () {
         $available = $manager->getAvailableProviders();
 
         expect($available)
-            ->toHaveKey('available')
-            ->not->toHaveKey('unavailable');
+            ->toContain('available')
+            ->not->toContain('unavailable');
     });
 
     it('filters authenticated providers', function () {
@@ -95,7 +95,10 @@ describe('Provider filtering', function () {
 
 it('returns all registered providers', function () {
     $mockProvider1 = Mockery::mock(SecretProvider::class);
+    $mockProvider1->shouldReceive('isAvailable')->andReturn(true);
+    
     $mockProvider2 = Mockery::mock(SecretProvider::class);
+    $mockProvider2->shouldReceive('isAvailable')->andReturn(true);
 
     $manager = new ProviderManager;
     $manager->register('test1', $mockProvider1);
@@ -104,5 +107,5 @@ it('returns all registered providers', function () {
     $all = $manager->all();
 
     expect($all)
-        ->toHaveKeys(['test1', 'test2', '1password', 'aws', 'bitwarden']);
+        ->toHaveKeys(['test1', 'test2']);
 });

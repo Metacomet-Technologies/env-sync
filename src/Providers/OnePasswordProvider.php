@@ -44,7 +44,6 @@ class OnePasswordProvider extends BaseProvider
 
         $envContent = file_get_contents($envFile);
         $envBase64 = $this->encodeContent($envContent);
-        
 
         if ($itemId) {
             // Check if content is identical
@@ -58,30 +57,30 @@ class OnePasswordProvider extends BaseProvider
             // Update existing item by recreating it
             // 1Password CLI v2.x has issues with updating items, so we delete and recreate
             // First, we backup the existing item in case recreation fails
-            
+
             // Get the existing item as backup
             $backupProcess = new Process(['op', 'item', 'get', $itemId, '--format', 'json']);
             $backupProcess->run();
-            
-            if (!$backupProcess->isSuccessful()) {
-                throw new Exception('Failed to backup existing item from 1Password: ' . $backupProcess->getErrorOutput());
+
+            if (! $backupProcess->isSuccessful()) {
+                throw new Exception('Failed to backup existing item from 1Password: '.$backupProcess->getErrorOutput());
             }
-            
+
             $backupData = $backupProcess->getOutput();
             $backupItem = json_decode($backupData, true);
-            
-            if (!$backupItem) {
+
+            if (! $backupItem) {
                 throw new Exception('Failed to parse backup item data from 1Password');
             }
-            
+
             // Delete the existing item
             $deleteProcess = new Process(['op', 'item', 'delete', $itemId, '--vault', $vault]);
             $deleteProcess->run();
-            
-            if (!$deleteProcess->isSuccessful()) {
-                throw new Exception('Failed to delete existing item from 1Password: ' . $deleteProcess->getErrorOutput());
+
+            if (! $deleteProcess->isSuccessful()) {
+                throw new Exception('Failed to delete existing item from 1Password: '.$deleteProcess->getErrorOutput());
             }
-            
+
             // Create new item with updated content
             $itemJson = json_encode([
                 'category' => 'SECURE_NOTE',
@@ -102,11 +101,11 @@ class OnePasswordProvider extends BaseProvider
             $process = new Process(['op', 'item', 'create', '-']);
             $process->setInput($itemJson);
             $process->run();
-            
+
             // If creation fails, attempt to restore the backup
-            if (!$process->isSuccessful()) {
+            if (! $process->isSuccessful()) {
                 $restoreError = $process->getErrorOutput();
-                
+
                 // Attempt to restore the original item
                 $restoreJson = json_encode([
                     'category' => $backupItem['category'] ?? 'SECURE_NOTE',
@@ -115,24 +114,24 @@ class OnePasswordProvider extends BaseProvider
                     'fields' => $backupItem['fields'] ?? [],
                     'tags' => $backupItem['tags'] ?? [],
                 ]);
-                
+
                 $restoreProcess = new Process(['op', 'item', 'create', '-']);
                 $restoreProcess->setInput($restoreJson);
                 $restoreProcess->run();
-                
-                if (!$restoreProcess->isSuccessful()) {
+
+                if (! $restoreProcess->isSuccessful()) {
                     // Save backup to file as last resort
-                    $backupFile = sys_get_temp_dir() . "/1password_backup_{$itemId}_" . time() . ".json";
+                    $backupFile = sys_get_temp_dir()."/1password_backup_{$itemId}_".time().'.json';
                     file_put_contents($backupFile, $backupData);
-                    
+
                     throw new Exception(
-                        "CRITICAL: Failed to recreate item AND failed to restore backup. " .
-                        "Original error: {$restoreError}. " .
-                        "Restore error: {$restoreProcess->getErrorOutput()}. " .
+                        'CRITICAL: Failed to recreate item AND failed to restore backup. '.
+                        "Original error: {$restoreError}. ".
+                        "Restore error: {$restoreProcess->getErrorOutput()}. ".
                         "Backup data saved to: {$backupFile}"
                     );
                 }
-                
+
                 throw new Exception(
                     "Failed to update item in 1Password (original has been restored): {$restoreError}"
                 );

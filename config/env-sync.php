@@ -3,39 +3,48 @@
 return [
     /*
     |--------------------------------------------------------------------------
-    | Default Provider
+    | Default Secret Manager Provider
     |--------------------------------------------------------------------------
     |
-    | This option controls the default secret provider that will be used
-    | when you don't specify a provider explicitly. Supported providers:
-    | "1password", "aws", "bitwarden"
+    | This option controls the default secret manager provider that will be
+    | used when you don't specify a provider explicitly. You may set this to
+    | any of the providers defined in the "providers" array below.
     |
     */
     'default' => env('ENV_SYNC_PROVIDER', '1password'),
 
     /*
     |--------------------------------------------------------------------------
-    | Provider Configurations
+    | Secret Manager Providers
     |--------------------------------------------------------------------------
     |
     | Here you may configure settings for each provider. These settings
     | will be used as defaults when using the respective provider.
     |
+    | Available drivers: 1password, aws, bitwarden
+    |
     */
     'providers' => [
+
         '1password' => [
+            'driver' => '1password',
             'vault' => env('ONEPASSWORD_VAULT', 'Private'),
         ],
 
-        // Future providers (roadmap):
-        // 'aws' => [
-        //     'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
-        //     'profile' => env('AWS_PROFILE'),
-        // ],
-        // 'bitwarden' => [
-        //     'organization_id' => env('BITWARDEN_ORG_ID'),
-        //     'server' => env('BITWARDEN_SERVER'),
-        // ],
+        'aws' => [
+            'driver' => 'aws',
+            'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
+            'profile' => env('AWS_PROFILE'),
+            'prefix' => env('AWS_SECRET_PREFIX', ''),
+        ],
+
+        'bitwarden' => [
+            'driver' => 'bitwarden',
+            'organization_id' => env('BITWARDEN_ORG_ID'),
+            'server' => env('BITWARDEN_SERVER', 'https://vault.bitwarden.com'),
+            'collection_id' => env('BITWARDEN_COLLECTION_ID'),
+        ],
+
     ],
 
     /*

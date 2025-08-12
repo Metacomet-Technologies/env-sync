@@ -5,11 +5,21 @@ namespace Metacomet\EnvSync\Commands;
 use Illuminate\Console\Command;
 use Metacomet\EnvSync\ProviderManager;
 
+use function Laravel\Prompts\confirm;
+use function Laravel\Prompts\error as promptError;
+use function Laravel\Prompts\info as promptInfo;
+use function Laravel\Prompts\note;
+use function Laravel\Prompts\outro;
+use function Laravel\Prompts\select;
+use function Laravel\Prompts\table;
+use function Laravel\Prompts\text;
+use function Laravel\Prompts\warning;
+
 class EnvSyncCommand extends Command
 {
     protected $signature = 'env:sync
-                            {environment=local : Environment name (local, staging, production, etc.)}
-                            {--provider=1password : Secret provider (1password, aws, bitwarden)}
+                            {environment? : Environment name (local, staging, production, etc.)}
+                            {--provider= : Secret provider (1password, aws, bitwarden)}
                             {--vault= : Vault/Organization/Region depending on provider}
                             {--title= : Custom item title/name}';
 
@@ -25,51 +35,110 @@ class EnvSyncCommand extends Command
 
     public function handle(): int
     {
+        // Get environment interactively if not provided
         $environment = $this->argument('environment');
-        $providerKey = $this->option('provider');
+        if (! $environment) {
+            $environment = select(
+                label: 'Which environment would you like to sync?',
+                options: [
+                    'local' => 'Local Development',
+                    'staging' => 'Staging',
+                    'production' => 'Production',
+                    'testing' => 'Testing',
+                    'custom' => 'Custom (enter manually)',
+                ],
+                default: 'local'
+            );
+
+            if ($environment === 'custom') {
+                $environment = text(
+                    label: 'Enter the environment name:',
+                    placeholder: 'e.g., qa, development',
+                    required: true
+                );
+            }
+        }
+
+        // Get provider - use default from config if not provided
+        $providerName = $this->option('provider');
+
+        if (! $providerName) {
+            // If interactive, allow selection
+            if (! $this->option('no-interaction')) {
+                $availableProviders = $this->providerManager->getAvailableProviders();
+                $providerOptions = [];
+
+                foreach ($availableProviders as $name) {
+                    $providerOptions[$name] = ucfirst($name);
+                }
+
+                $providerName = select(
+                    label: 'Which secret manager would you like to use?',
+                    options: $providerOptions,
+                    default: $this->providerManager->getDefaultProvider()
+                );
+            } else {
+                // Use default provider
+                $providerName = null;
+            }
+        }
+
         $vault = $this->option('vault');
         $title = $this->option('title');
 
         try {
-            $provider = $this->providerManager->get($providerKey);
+            $provider = $this->providerManager->get($providerName);
+            $providerConfig = config("env-sync.providers.{$providerName}") ?: config('env-sync.providers.'.$this->providerManager->getDefaultProvider());
 
             // Check if provider is available
             if (! $provider->isAvailable()) {
-                $this->error("{$provider->getName()} CLI not installed");
-                $this->line($provider->getInstallInstructions());
+                promptError("{$provider->getName()} CLI not installed");
+                note($provider->getInstallInstructions());
 
                 return Command::FAILURE;
             }
 
             // Check if authenticated
             if (! $provider->isAuthenticated()) {
-                $this->error("Not authenticated with {$provider->getName()}");
-                $this->line($provider->getAuthInstructions());
+                promptError("Not authenticated with {$provider->getName()}");
+                note($provider->getAuthInstructions());
+
+                if (confirm('Would you like to authenticate now?')) {
+                    promptInfo('Please run the authentication command shown above, then try again.');
+                }
 
                 return Command::FAILURE;
             }
 
-            // Display header
-            $this->newLine();
-            $this->info('================================');
-            $this->info("  {$provider->getName()} .env Sync Utility");
-            $this->info('================================');
-            $this->newLine();
+            // Get vault - use config default if not provided
+            if (! $vault) {
+                // Try to get default vault from config
+                $vault = config("env-sync.providers.{$providerName}.vault");
+
+                // If interactive and no vault specified for 1Password, allow input
+                if (! $vault && $providerName === '1password' && ! $this->option('no-interaction')) {
+                    $vault = text(
+                        label: 'Enter the 1Password vault name:',
+                        placeholder: 'e.g., Personal, Company',
+                        default: config('env-sync.providers.1password.vault', 'Private'),
+                        required: false
+                    );
+                }
+            }
+
+            promptInfo("{$provider->getName()} .env Sync Utility");
 
             while (true) {
-                // Check current status
-                $this->info('Current Status:');
-                $this->line('-------------------');
-
                 $config = [
                     'environment' => $environment,
                 ];
 
                 // Add provider-specific options
                 if ($vault) {
-                    if ($providerKey === 'aws') {
+                    $driverType = $providerConfig['driver'] ?? $providerName;
+                    if ($driverType === 'aws') {
                         $config['region'] = $vault;
-                    } elseif ($providerKey === 'bitwarden') {
+                    } elseif ($driverType === 'bitwarden') {
                         $config['organizationId'] = $vault;
                     } else {
                         $config['vault'] = $vault;
@@ -77,7 +146,8 @@ class EnvSyncCommand extends Command
                 }
 
                 if ($title) {
-                    if ($providerKey === 'aws') {
+                    $driverType = $providerConfig['driver'] ?? $providerName;
+                    if ($driverType === 'aws') {
                         $config['secretName'] = $title;
                     } else {
                         $config['title'] = $title;
@@ -88,110 +158,112 @@ class EnvSyncCommand extends Command
                 $envFile = $this->getEnvFilePath($environment);
                 $localExists = file_exists($envFile);
 
-                if ($localExists) {
-                    $localTime = date('Y-m-d H:i:s', filemtime($envFile));
-                    $localLines = count(file($envFile));
-
-                    $this->line('Local .env: <fg=green>✓ Found</>');
-                    $this->line("  Modified: <fg=yellow>{$localTime}</>");
-                    $this->line("  Lines: <fg=yellow>{$localLines}</>");
-                } else {
-                    $this->line('Local .env: <fg=red>✗ Not found</>');
-                }
-
                 // Check remote
                 $remoteExists = $provider->exists($config);
 
-                if ($remoteExists) {
-                    $this->line("{$provider->getName()}: <fg=green>✓ Found</>");
+                // Build status table data
+                $statusData = [];
+
+                if ($localExists) {
+                    $localTime = date('Y-m-d H:i:s', filemtime($envFile));
+                    $localLines = count(file($envFile));
+                    $statusData[] = ['Local .env', '✓ Found', "{$localLines} lines, modified {$localTime}"];
                 } else {
-                    $this->line("{$provider->getName()}: <fg=red>✗ Not found</>");
+                    $statusData[] = ['Local .env', '✗ Not found', ''];
                 }
 
-                $this->newLine();
-                $this->info('Available Actions:');
-                $this->line('-------------------');
-
-                $choices = [
-                    '1' => "Push - Upload local .env to {$provider->getName()}",
-                    '2' => "Pull - Download .env from {$provider->getName()}",
-                    '3' => "Compare - Show differences between local and {$provider->getName()}",
-                    '4' => 'Status - Refresh status information',
-                    '5' => 'List - Show all environments in provider',
-                    '6' => 'Exit',
-                ];
-
-                foreach ($choices as $key => $description) {
-                    $this->line("<fg=cyan>{$key})</> {$description}");
+                if ($remoteExists) {
+                    $statusData[] = [$provider->getName(), '✓ Found', ''];
+                } else {
+                    $statusData[] = [$provider->getName(), '✗ Not found', ''];
                 }
 
-                $this->newLine();
-                $choice = $this->ask('Select action (1-6)');
+                table(['Resource', 'Status', 'Details'], $statusData);
+
+                $actions = [];
+
+                if ($localExists) {
+                    $actions['push'] = "Push - Upload local .env to {$provider->getName()}";
+                }
+
+                if ($remoteExists) {
+                    $actions['pull'] = "Pull - Download .env from {$provider->getName()}";
+                }
+
+                if ($localExists && $remoteExists) {
+                    $actions['compare'] = "Compare - Show differences between local and {$provider->getName()}";
+                }
+
+                $actions['list'] = "List - Show all environments in {$provider->getName()}";
+                $actions['refresh'] = 'Refresh - Update status information';
+                $actions['exit'] = 'Exit';
+
+                $choice = select(
+                    label: 'What would you like to do?',
+                    options: $actions,
+                    default: 'exit'
+                );
 
                 switch ($choice) {
-                    case '1':
-                        $this->newLine();
+                    case 'push':
                         if (! $localExists) {
-                            $this->error('Error: Local .env file not found');
+                            promptError('Local .env file not found');
                             break;
                         }
-                        $this->info("Pushing .env to {$provider->getName()}...");
+
                         $this->call('env:push', [
                             'environment' => $environment,
-                            '--provider' => $providerKey,
+                            '--provider' => $providerName,
                             '--vault' => $vault,
                             '--title' => $title,
+                            '--no-interaction' => true,
                         ]);
                         break;
 
-                    case '2':
-                        $this->newLine();
-                        $this->info("Pulling .env from {$provider->getName()}...");
+                    case 'pull':
+                        if (! $remoteExists) {
+                            promptError("{$provider->getName()} item not found");
+                            break;
+                        }
+
                         $this->call('env:pull', [
                             'environment' => $environment,
-                            '--provider' => $providerKey,
+                            '--provider' => $providerName,
                             '--vault' => $vault,
                             '--title' => $title,
+                            '--no-interaction' => true,
                         ]);
                         break;
 
-                    case '3':
-                        $this->newLine();
+                    case 'compare':
                         if (! $localExists) {
-                            $this->error('Error: Local .env file not found');
+                            promptError('Local .env file not found');
                             break;
                         }
                         if (! $remoteExists) {
-                            $this->error("Error: {$provider->getName()} item not found");
+                            promptError("{$provider->getName()} item not found");
                             break;
                         }
 
-                        $this->info("Comparing local and {$provider->getName()} versions...");
+                        promptInfo("Comparing local and {$provider->getName()} versions...");
 
                         $compareResult = $provider->compare($config);
 
                         if ($compareResult['areIdentical']) {
-                            $this->info('✓ Files are identical');
+                            promptInfo('✓ Files are identical');
                         } else {
-                            $this->warn('Differences found:');
+                            warning('Differences found');
                             $this->showDifferences($compareResult['localContent'], $compareResult['remoteContent']);
                         }
                         break;
 
-                    case '4':
-                        $this->newLine();
-
-                        // Status refresh happens automatically in the loop
-                        continue 2;
-
-                    case '5':
-                        $this->newLine();
-                        $this->info("Listing all environments in {$provider->getName()}...");
+                    case 'list':
+                        promptInfo("Listing all environments in {$provider->getName()}...");
 
                         $items = $provider->list($config);
 
                         if (empty($items)) {
-                            $this->warn('No environments found');
+                            warning('No environments found');
                         } else {
                             $tableData = [];
                             foreach ($items as $item) {
@@ -202,30 +274,30 @@ class EnvSyncCommand extends Command
                                 ];
                             }
 
-                            $this->table(['Environment', 'Title', 'Last Updated'], $tableData);
+                            table(['Environment', 'Title', 'Last Updated'], $tableData);
                         }
                         break;
 
-                    case '6':
-                        $this->info('Goodbye!');
+                    case 'refresh':
+                        // Status refresh happens automatically in the loop
+                        continue 2;
+
+                    case 'exit':
+                        outro('Goodbye!');
 
                         return Command::SUCCESS;
-
-                    default:
-                        $this->error('Invalid choice');
-                        break;
                 }
 
-                $this->newLine();
-                if (! $this->confirm('Continue with another action?', true)) {
+                if (! confirm('Continue with another action?', true)) {
                     break;
                 }
-                $this->newLine();
             }
+
+            outro('Thanks for using env-sync!');
 
             return Command::SUCCESS;
         } catch (\Exception $e) {
-            $this->error($e->getMessage());
+            promptError($e->getMessage());
 
             return Command::FAILURE;
         }
@@ -258,8 +330,7 @@ class EnvSyncCommand extends Command
         $process->run();
 
         if ($process->getOutput()) {
-            $this->line('<fg=cyan>(- local, + remote)</>');
-            $this->newLine();
+            note('(- local, + remote)');
             $this->line($process->getOutput());
         }
 
