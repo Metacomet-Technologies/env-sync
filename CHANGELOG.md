@@ -2,6 +2,81 @@
 
 All notable changes to `env-sync` will be documented in this file.
 
+## v0.0.5 - AWS Secrets Manager Support - 2025-01-12
+
+### 🚀 New Features
+
+This release adds full support for AWS Secrets Manager as a new provider option alongside 1Password.
+
+#### Added
+
+- ☁️ **AWS Secrets Manager Provider** - Complete implementation with all features
+- 🌍 **Multi-region Support** - Configure and use different AWS regions
+- 🔐 **Flexible Authentication** - Support for AWS profiles, IAM roles, and explicit credentials
+- 🏷️ **Smart Secret Naming** - Automatic naming based on Git repository info
+- 🔒 **Data Integrity** - Base64 encoding for secure storage
+- 🗂️ **Secret Organization** - Automatic tagging for better AWS console navigation
+- ♻️ **Safe Deletion** - Soft delete with 30-day recovery window
+- 🧪 **Comprehensive Tests** - Full unit test coverage for AWS provider
+- 📦 **Optional Dependency** - AWS SDK added as suggested dependency
+
+#### Changed
+
+- 📚 Updated README with complete AWS Secrets Manager documentation
+- 💬 Improved error messages with helpful installation instructions
+- 🔧 Updated PHPStan baseline for optional dependencies
+
+#### Fixed
+
+- ✅ Resolved PHPStan analysis errors for optional AWS SDK dependency
+
+#### Installation
+
+To use AWS Secrets Manager:
+
+```bash
+# Install the package
+composer require metacomet-technologies/env-sync:^0.0.5
+
+# Install AWS SDK (required for AWS provider)
+composer require aws/aws-sdk-php
+```
+
+#### Usage
+
+```bash
+# Push to AWS Secrets Manager
+php artisan env:push --provider=aws
+
+# Pull from AWS Secrets Manager
+php artisan env:pull --provider=aws --region=us-west-2
+
+# Set default provider
+ENV_SYNC_PROVIDER=aws
+```
+
+**Full Changelog**: https://github.com/Metacomet-Technologies/env-sync/compare/v0.0.4...v0.0.5
+
+## v0.0.4 - Laravel Prompts Integration - 2025-08-12
+
+### ✨ Enhancements
+
+This release introduces Laravel Prompts for a better interactive experience and improves the provider architecture.
+
+#### Added
+
+- 🎨 **Laravel Prompts Integration** - Beautiful interactive menus and prompts
+- 🏗️ **Driver-based Configuration** - More flexible provider system
+- 🔄 **Interactive Sync Mode** - Enhanced user experience with visual feedback
+
+#### Fixed
+
+- ✅ Resolved 1Password update failures
+- 🔧 Fixed git working directory detection issues
+- 🐛 Various bug fixes and improvements
+
+**Full Changelog**: https://github.com/Metacomet-Technologies/env-sync/compare/v0.0.3...v0.0.4
+
 ## v0.0.3 - Dependency Fix - 2025-08-12
 
 ### 🔧 Bug Fix
