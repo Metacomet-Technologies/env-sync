@@ -2,6 +2,37 @@
 
 All notable changes to `env-sync` will be documented in this file.
 
+## v0.0.2 - CI/CD Improvements - 2025-08-12
+
+### 🚀 CI/CD Improvements
+
+This release focuses on improving the reliability and performance of our continuous integration pipeline.
+
+#### Improvements
+
+- 📊 **Optimized Test Matrix** - Reduced from 48 to 5 strategic test combinations
+- ⚡ **Faster CI** - Tests now complete in ~40 seconds instead of potential hours
+- 🔧 **Fixed Compatibility** - Resolved prefer-lowest issues with orchestra/canvas
+- 🎯 **Focused Testing** - Removed Windows testing (unnecessary for Laravel packages)
+
+#### Test Coverage
+
+The optimized matrix now tests:
+
+- PHP 8.1 + Laravel 10 (minimum for L10)
+- PHP 8.2 + Laravel 11 (minimum for L11)
+- PHP 8.2 + Laravel 12 (minimum for L12)
+- PHP 8.3 + Laravel 12 (current stable)
+- PHP 8.4 + Laravel 12 (bleeding edge)
+
+#### Installation
+
+```bash
+composer require metacomet-technologies/env-sync:^0.0.2
+
+```
+**Full Changelog**: https://github.com/Metacomet-Technologies/env-sync/compare/v0.0.1...v0.0.2
+
 ## v0.0.1 - Initial Release - 2025-08-12
 
 ### 🎉 Initial Release
@@ -32,5 +63,6 @@ All notable changes to `env-sync` will be documented in this file.
 
 ```bash
 composer require metacomet-technologies/env-sync
+
 
 ```
