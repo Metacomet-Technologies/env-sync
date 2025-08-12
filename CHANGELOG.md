@@ -2,6 +2,30 @@
 
 All notable changes to `env-sync` will be documented in this file.
 
+## v0.0.3 - Dependency Fix - 2025-08-12
+
+### 🔧 Bug Fix
+
+This release fixes a missing production dependency that could cause issues during package installation.
+
+#### Fixed
+
+- ✅ Added `symfony/process` as an explicit production dependency
+- 📦 Package now properly declares all required dependencies
+- 🔨 Prevents potential `Class not found` errors for users
+
+#### Technical Details
+
+The package uses `Symfony\Component\Process\Process` in production code (providers and commands) but it wasn't explicitly required in composer.json. This could cause issues if the dependency wasn't pulled in by other packages.
+
+#### Installation
+
+```bash
+composer require metacomet-technologies/env-sync:^0.0.3
+
+```
+**Full Changelog**: https://github.com/Metacomet-Technologies/env-sync/compare/v0.0.2...v0.0.3
+
 ## v0.0.2 - CI/CD Improvements - 2025-08-12
 
 ### 🚀 CI/CD Improvements
@@ -29,6 +53,7 @@ The optimized matrix now tests:
 
 ```bash
 composer require metacomet-technologies/env-sync:^0.0.2
+
 
 ```
 **Full Changelog**: https://github.com/Metacomet-Technologies/env-sync/compare/v0.0.1...v0.0.2
@@ -63,6 +88,7 @@ composer require metacomet-technologies/env-sync:^0.0.2
 
 ```bash
 composer require metacomet-technologies/env-sync
+
 
 
 ```
