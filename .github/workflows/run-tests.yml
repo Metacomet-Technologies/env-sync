@@ -13,49 +13,32 @@ jobs:
       fail-fast: true
       matrix:
         include:
-          # Test minimum supported versions
+          # Test minimum PHP for Laravel 10
           - php: 8.1
             laravel: 10.*
             testbench: 8.*
-            stability: prefer-lowest
-            
-          # Test Laravel 10 with latest PHP
-          - php: 8.3
-            laravel: 10.*
-            testbench: 8.*
-            stability: prefer-stable
             
           # Test Laravel 11 with minimum PHP
           - php: 8.2
             laravel: 11.*
             testbench: 9.*
-            stability: prefer-lowest
             
-          # Test Laravel 11 with stable
-          - php: 8.3
-            laravel: 11.*
-            testbench: 9.*
-            stability: prefer-stable
-            
-          # Test Laravel 12 with minimum PHP
+          # Test Laravel 12 with minimum PHP  
           - php: 8.2
             laravel: 12.*
             testbench: 10.*
-            stability: prefer-lowest
             
-          # Test Laravel 12 with latest stable
+          # Test latest stable versions
           - php: 8.3
             laravel: 12.*
             testbench: 10.*
-            stability: prefer-stable
             
-          # Test latest everything
+          # Test bleeding edge
           - php: 8.4
             laravel: 12.*
             testbench: 10.*
-            stability: prefer-stable
 
-    name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.stability }}
+    name: P${{ matrix.php }} - L${{ matrix.laravel }}
 
     steps:
       - name: Checkout code
@@ -76,7 +59,7 @@ jobs:
       - name: Install dependencies
         run: |
           composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
-          composer update --${{ matrix.stability }} --prefer-dist --no-interaction
+          composer update --prefer-stable --prefer-dist --no-interaction
 
       - name: List Installed Dependencies
         run: composer show -D
