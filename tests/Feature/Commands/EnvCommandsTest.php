@@ -15,14 +15,15 @@ beforeEach(function () {
 
     // Force override the ProviderManager singleton with our mock
     $mockProvider = $this->mockProvider; // Capture the mock provider in a local variable
-    
+
     // First, unbind any existing instance
     $this->app->forgetInstance(ProviderManager::class);
-    
+
     // Then register our custom singleton
     $this->app->singleton(ProviderManager::class, function () use ($mockProvider) {
         $manager = new ProviderManager;
         $manager->register('1password', $mockProvider);
+
         return $manager;
     });
 });
@@ -95,8 +96,6 @@ describe('env:pull command', function () {
             "APP_NAME=PulledApp\nAPP_ENV=production\n"
         );
     });
-
-
 
     it('fails when item does not exist in provider', function () {
         $this->artisan('env:pull', [
