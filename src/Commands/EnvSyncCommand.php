@@ -4,6 +4,7 @@ namespace Metacomet\EnvSync\Commands;
 
 use Illuminate\Console\Command;
 use Metacomet\EnvSync\ProviderManager;
+use Symfony\Component\Process\Process;
 
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\error as promptError;
@@ -322,7 +323,7 @@ class EnvSyncCommand extends Command
         file_put_contents($tempRemote, $remoteContent);
 
         // Show diff
-        $process = new \Symfony\Component\Process\Process([
+        $process = new Process([
             'diff', '-u', $tempLocal, $tempRemote,
             '--label', 'Local .env',
             '--label', 'Remote',

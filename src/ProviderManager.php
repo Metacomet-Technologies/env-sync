@@ -217,7 +217,7 @@ class ProviderManager
                     if ($provider->isAvailable()) {
                         $available[$name] = $provider;
                     }
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     // Provider not available
                 }
             }

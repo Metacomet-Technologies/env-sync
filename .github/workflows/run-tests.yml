@@ -13,26 +13,21 @@ jobs:
       fail-fast: true
       matrix:
         include:
-          # Test minimum PHP for Laravel 10
-          - php: 8.1
-            laravel: 10.*
-            testbench: 8.*
-            
           # Test Laravel 11 with minimum PHP
           - php: 8.2
             laravel: 11.*
             testbench: 9.*
-            
-          # Test Laravel 12 with minimum PHP  
+
+          # Test Laravel 12 with minimum PHP
           - php: 8.2
             laravel: 12.*
             testbench: 10.*
-            
+
           # Test latest stable versions
           - php: 8.3
             laravel: 12.*
             testbench: 10.*
-            
+
           # Test bleeding edge
           - php: 8.4
             laravel: 12.*
