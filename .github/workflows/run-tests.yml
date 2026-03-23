@@ -38,6 +38,16 @@ jobs:
             laravel: 12.*
             testbench: 10.*
 
+          # Test Laravel 13 with minimum PHP
+          - php: 8.3
+            laravel: 13.*
+            testbench: 11.*
+
+          # Test PHP 8.4 with Laravel 13
+          - php: 8.4
+            laravel: 13.*
+            testbench: 11.*
+
     name: P${{ matrix.php }} - L${{ matrix.laravel }}
 
     steps:

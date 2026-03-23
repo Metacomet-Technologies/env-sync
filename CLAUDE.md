@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Laravel Environment Sync is a Laravel package for secure synchronization of environment variables across development machines using secret managers. It uses a driver-based architecture to support multiple providers (currently 1Password, with AWS Secrets Manager and Bitwarden planned).
+Laravel Environment Sync is a Laravel package for secure synchronization of environment variables across development machines using secret managers. It uses a driver-based architecture to support multiple providers (1Password and AWS Secrets Manager implemented; Bitwarden has a skeleton with stub methods).
 
 ## Key Commands
 
@@ -15,6 +15,12 @@ composer install
 
 # Run tests
 vendor/bin/pest
+
+# Run a single test file
+vendor/bin/pest tests/Unit/ProviderManagerTest.php
+
+# Filter tests by name
+vendor/bin/pest --filter=TestNamePattern
 
 # Run tests with coverage
 vendor/bin/pest --coverage
@@ -69,18 +75,25 @@ Commands use dependency injection to receive `ProviderManager` and handle provid
 ### Provider Implementations
 Each provider extends `BaseProvider` and implements provider-specific logic:
 - `OnePasswordProvider`: Uses `op` CLI with vault support
-- `AwsSecretsManagerProvider`: Placeholder for AWS integration
-- `BitwardenProvider`: Placeholder for Bitwarden integration
+- `AwsSecretsManagerProvider`: Uses AWS SDK (`aws/aws-sdk-php`, suggested dependency) with region/profile/credentials config
+- `BitwardenProvider`: Skeleton with stub methods (planned)
 
 ### Testing Strategy
-Tests use mock providers (`tests/Mocks/MockSecretProvider.php`) to avoid external dependencies. The `ProviderManager::register()` method allows injecting test providers.
+Tests use Pest (not traditional PHPUnit syntax) with `beforeEach`/`it`/`describe` blocks. Mock providers in `tests/Mocks/` avoid external dependencies. Tests replace the `ProviderManager` singleton via `$this->app->singleton()` to inject mock providers. Test .env files are cleaned up in `afterEach` hooks.
+
+## Code Quality
+
+- **PHPStan**: Level 5 with Larastan, baseline in `phpstan-baseline.neon`
+- **Pint**: Default Laravel preset (no custom config)
+- **CI**: GitHub Actions matrix — PHP 8.1-8.5 × Laravel 10/11/12/13, plus separate PHPStan and Pint workflows
 
 ## Configuration
 
 Main configuration file: `config/env-sync.php`
 - `default`: Default provider name
-- `providers`: Provider-specific settings
-- `required_variables`: Variables that must exist
+- `providers`: Provider-specific settings (1Password vault, AWS region/profile/credentials, Bitwarden org/server)
+- `required_variables`: Variables that must exist (validated after pull)
+- `backup.enabled`, `backup.max_backups`, `backup.directory`: Backup settings for overwritten .env files
 
 ## Environment File Mapping
 - `local` → `.env`
